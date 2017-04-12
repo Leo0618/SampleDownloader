@@ -54,7 +54,12 @@ public class MainActivity extends AppCompatActivity {
 
     private IDownloadCallback mCallback = new IDownloadCallback() {
         @Override
-        public void onFailure(Exception e) {
+        public void onStart(Downloader.Task task) {
+            LogUtil.e("leo", "start download task:" + task);
+        }
+
+        @Override
+        public void onFailure(Downloader.Task task, Exception e) {
             LogUtil.e("leo", "e:" + (e == null ? "null" : e.getMessage()));
         }
 

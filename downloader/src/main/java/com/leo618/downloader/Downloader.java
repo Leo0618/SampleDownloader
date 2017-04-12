@@ -57,11 +57,11 @@ public final class Downloader {
         DownloadLog.d("downloadURL=" + task.downloadURL);
         DownloadLog.d("downloadFilePath=" + task.downloadFilePath);
         if (!URLUtil.isNetworkUrl(task.downloadURL)) {
-            task.mIDownloadCallback.onFailure(new IllegalArgumentException("downloadURL illegal."));
+            task.mIDownloadCallback.onFailure(task, new IllegalArgumentException("downloadURL illegal."));
             return;
         }
         if (TextUtils.isEmpty(task.downloadFilePath)) {
-            task.mIDownloadCallback.onFailure(new IllegalArgumentException("downloadFilePath illegal."));
+            task.mIDownloadCallback.onFailure(task, new IllegalArgumentException("downloadFilePath illegal."));
             return;
         }
         task.startMe();
@@ -261,7 +261,7 @@ public final class Downloader {
         }
 
         void startMe() {
-            mIDownloadCallback.onStart();
+            mIDownloadCallback.onStart(this);
             downloadId = mDownloadManager.enqueue(create());
             DownloadLog.i("start a task. id=" + downloadId);
         }
