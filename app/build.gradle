@@ -4,7 +4,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
     defaultConfig {
-        applicationId "com.leo618.downloader"
+        applicationId "com.leo618.sampledownloader"
         minSdkVersion 11
         targetSdkVersion 25
         versionCode 1
@@ -19,8 +19,9 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:25.2.0'
     compile 'com.leo618.utils:utils:0.0.2'
     compile 'com.leo618:MPermission:0.0.2'
+    compile project(':downloader')
 }

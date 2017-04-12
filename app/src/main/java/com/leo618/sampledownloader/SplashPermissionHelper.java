@@ -1,4 +1,4 @@
-package com.leo618.downloader;
+package com.leo618.sampledownloader;
 
 import android.content.Intent;
 import android.os.Build;
