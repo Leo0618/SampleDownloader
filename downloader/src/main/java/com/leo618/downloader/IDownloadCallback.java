@@ -29,5 +29,5 @@ public interface IDownloadCallback {
     /**
      * 下载进度更新
      */
-    void onProgressUpdate(long writeSize, long totalSize, boolean completed);
+    void onProgress(long writeSize, long totalSize, String percent);
 }

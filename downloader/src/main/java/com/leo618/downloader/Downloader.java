@@ -2,25 +2,26 @@ package com.leo618.downloader;
 
 import android.app.DownloadManager;
 import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.text.TextUtils;
 import android.webkit.URLUtil;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * function:
+ * function:简易下载器
  *
  * <p></p>
  * Created by lzj on 2017/4/12.
  */
-@SuppressWarnings({"unused", "WeakerAccess", "FieldCanBeLocal"})
+@SuppressWarnings("ALL")
 public final class Downloader {
     private static volatile AtomicReference<Downloader> INSTANCE = new AtomicReference<>();
     private Context mContext;
@@ -41,11 +42,12 @@ public final class Downloader {
         mDownloadManager = (DownloadManager) mContext.getSystemService(Context.DOWNLOAD_SERVICE);
     }
 
-    private static Handler mUIHandler = new Handler(Looper.getMainLooper()) {
-        @Override
-        public void handleMessage(Message msg) {
-        }
-    };
+    /**
+     * 是否开启打印log,默认开启
+     */
+    public static void debug(boolean debug) {
+        DownloadLog.config(debug);
+    }
 
     /**
      * 下载一个任务
@@ -97,7 +99,7 @@ public final class Downloader {
         }
         mTaskMap.remove(downloadId);
         task.cancelMe();
-        DownloadLog.d("cancel task success. downloadId=" + downloadId);
+        DownloadLog.d("has canceled task. downloadId=" + downloadId);
     }
 
     /**
@@ -126,7 +128,7 @@ public final class Downloader {
         long downloadId = -1;
 
         private boolean allowScan = true;
-        private int mNotificationVisibility = NOTIFICATION_HIDDEN;
+        private int mNotificationVisibility = NOTIFICATION_VISIBLE;
         private Map<String, String> headersMap = new HashMap<>();
         private CharSequence mTitle, mDescription;
         private String mMimeType;
@@ -202,7 +204,8 @@ public final class Downloader {
         }
 
         /**
-         * 设置下载文件的mime类型
+         * 设置下载文件的mime类型<br/>
+         * 举例：如果是下载apk文件，设置mimeType为：application/vnd.android.package-archive
          */
         public Downloader.Task setMimeType(String mimeType) {
             mMimeType = mimeType;
@@ -240,6 +243,11 @@ public final class Downloader {
             return downloadId;
         }
 
+        private Timer mTimer;
+        private TimerTask mTimerTask;
+        private android.os.Handler mHandler = new Handler(android.os.Looper.getMainLooper());
+        private volatile long downloadedSize, totalSize;
+
         @SuppressWarnings("ResultOfMethodCallIgnored")
         DownloadManager.Request create() {
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(downloadURL));
@@ -261,10 +269,48 @@ public final class Downloader {
         }
 
         void startMe() {
-            mIDownloadCallback.onStart(this);
             downloadId = mDownloadManager.enqueue(create());
             DownloadLog.i("start a task. id=" + downloadId);
+            mIDownloadCallback.onStart(this);
+            final DownloadManager.Query query = new DownloadManager.Query();
+            mTimer = new Timer();
+            mTimerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    Cursor cursor = mDownloadManager.query(query.setFilterById(getDownloadId()));
+                    if (cursor != null && cursor.moveToFirst()) {
+                        if (cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_SUCCESSFUL) {
+                            mTimerTask.cancel();
+                            mTimer.purge();
+                            mHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    DownloadLog.d("the download has successfully completed. id=" + downloadId);
+                                    mIDownloadCallback.onProgress(totalSize, totalSize, "100%");
+                                    mIDownloadCallback.onSuccess(new File(downloadFilePath));
+                                    mHandler.removeCallbacksAndMessages(mProgressUpdateRunnable);
+                                }
+                            });
+                            return;
+                        }
+                        downloadedSize = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+                        totalSize = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+                        if (totalSize > 0) mHandler.post(mProgressUpdateRunnable);
+                    }
+                    if (cursor != null) cursor.close();
+                }
+            };
+            mTimer.schedule(mTimerTask, 0, 1000);
         }
+
+        private Runnable mProgressUpdateRunnable = new Runnable() {
+            @Override
+            public void run() {
+                String percent = String.valueOf(downloadedSize * 100 / totalSize) + "%";
+                DownloadLog.d("download progress update : downloadedSize=" + downloadedSize + " ,totalSize=" + totalSize + " ,percent=" + percent);
+                mIDownloadCallback.onProgress(downloadedSize, totalSize, percent);
+            }
+        };
 
         void cancelMe() {
             mDownloadManager.remove(getDownloadId());

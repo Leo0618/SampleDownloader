@@ -12,7 +12,7 @@ android {
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -23,5 +23,7 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.2.0'
     compile 'com.leo618.utils:utils:0.0.2'
     compile 'com.leo618:MPermission:0.0.2'
-    compile project(':downloader')
+
+//    compile project(':downloader')
+    compile 'com.leo618:downloader:0.0.2'
 }
