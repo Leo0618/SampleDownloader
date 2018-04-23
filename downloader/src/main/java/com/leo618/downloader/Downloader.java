@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.text.TextUtils;
 import android.webkit.URLUtil;
 
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,16 +25,16 @@ import java.util.concurrent.atomic.AtomicReference;
 @SuppressWarnings("ALL")
 public final class Downloader {
     private static volatile AtomicReference<Downloader> INSTANCE = new AtomicReference<>();
-    private Context mContext;
+    private        Context         mContext;
     private static DownloadManager mDownloadManager;
     private Map<Long, Task> mTaskMap = new HashMap<>();
 
     public static Downloader getInstance(Context context) {
-        for (; ; ) {
+        for(; ; ) {
             Downloader manager = INSTANCE.get();
-            if (manager != null) return manager;
+            if(manager != null) return manager;
             manager = new Downloader(context);
-            if (INSTANCE.compareAndSet(null, manager)) return manager;
+            if(INSTANCE.compareAndSet(null, manager)) return manager;
         }
     }
 
@@ -55,14 +56,14 @@ public final class Downloader {
      * @param task see {@link Task}
      */
     public void download(Task task) {
-        if (task == null) return;
-        DownloadLog.d("downloadURL=" + task.downloadURL);
-        DownloadLog.d("downloadFilePath=" + task.downloadFilePath);
-        if (!URLUtil.isNetworkUrl(task.downloadURL)) {
+        if(task == null) return;
+        DownloadLog.d("downloadURL="+task.downloadURL);
+        DownloadLog.d("downloadFilePath="+task.downloadFilePath);
+        if(!URLUtil.isNetworkUrl(task.downloadURL)) {
             task.mIDownloadCallback.onFailure(task, new IllegalArgumentException("downloadURL illegal."));
             return;
         }
-        if (TextUtils.isEmpty(task.downloadFilePath)) {
+        if(TextUtils.isEmpty(task.downloadFilePath)) {
             task.mIDownloadCallback.onFailure(task, new IllegalArgumentException("downloadFilePath illegal."));
             return;
         }
@@ -76,8 +77,8 @@ public final class Downloader {
      * @param tasks see {@link Task}
      */
     public void download(Task[] tasks) {
-        if (tasks == null) return;
-        for (Task task : tasks) {
+        if(tasks == null) return;
+        for(Task task : tasks) {
             download(task);
         }
     }
@@ -88,18 +89,18 @@ public final class Downloader {
      * @param downloadId 下载任务的ID
      */
     public void cancel(long downloadId) {
-        if (downloadId == -1) {
+        if(downloadId == -1) {
             DownloadLog.i("downloadId is -1");
             return;
         }
         Task task = mTaskMap.get(downloadId);
-        if (!mTaskMap.containsKey(downloadId) || task == null) {
+        if(!mTaskMap.containsKey(downloadId) || task == null) {
             DownloadLog.i("no download at this downloadId");
             return;
         }
         mTaskMap.remove(downloadId);
         task.cancelMe();
-        DownloadLog.d("has canceled task. downloadId=" + downloadId);
+        DownloadLog.d("has canceled task. downloadId="+downloadId);
     }
 
     /**
@@ -108,8 +109,8 @@ public final class Downloader {
      * @param downloadIds 下载任务的ID数组
      */
     public void cancel(long[] downloadIds) {
-        if (downloadIds == null) return;
-        for (long downloadId : downloadIds) {
+        if(downloadIds == null) return;
+        for(long downloadId : downloadIds) {
             cancel(downloadId);
         }
     }
@@ -120,16 +121,16 @@ public final class Downloader {
      */
     public static class Task {
         /** 下载链接 */
-        String downloadURL;
+        String            downloadURL;
         /** 下载完成后文件存放地址 */
-        String downloadFilePath;
+        String            downloadFilePath;
         /** 下载回调 */
         IDownloadCallback mIDownloadCallback;
         long downloadId = -1;
 
-        private boolean allowScan = true;
-        private int mNotificationVisibility = NOTIFICATION_VISIBLE;
-        private Map<String, String> headersMap = new HashMap<>();
+        private boolean             allowScan               = true;
+        private int                 mNotificationVisibility = NOTIFICATION_VISIBLE;
+        private Map<String, String> headersMap              = new HashMap<>();
         private CharSequence mTitle, mDescription;
         private String mMimeType;
         private boolean onlyInWifiDownload, mIsVisibleInDownloadsUi, deleteExist = true;
@@ -243,7 +244,7 @@ public final class Downloader {
             return downloadId;
         }
 
-        private Timer mTimer;
+        private Timer     mTimer;
         private TimerTask mTimerTask;
         private android.os.Handler mHandler = new Handler(android.os.Looper.getMainLooper());
         private volatile long downloadedSize, totalSize;
@@ -251,63 +252,68 @@ public final class Downloader {
         @SuppressWarnings("ResultOfMethodCallIgnored")
         DownloadManager.Request create() {
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(downloadURL));
-            File file = new File(downloadFilePath);
-            if (deleteExist) file.delete();
+            File                    file    = new File(downloadFilePath);
+            if(deleteExist) file.delete();
             request.setDestinationUri(Uri.fromFile(file));
-            if (allowScan) request.allowScanningByMediaScanner();
+            if(allowScan) request.allowScanningByMediaScanner();
             request.setNotificationVisibility(mNotificationVisibility);
-            for (Map.Entry<String, String> entry : headersMap.entrySet()) {
+            for(Map.Entry<String, String> entry : headersMap.entrySet()) {
                 request.addRequestHeader(entry.getKey(), entry.getValue());
             }
             request.setTitle(mTitle);
             request.setDescription(mDescription);
             request.setMimeType(mMimeType);
-            if (onlyInWifiDownload) request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI);
+            if(onlyInWifiDownload) request.setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI);
             request.setVisibleInDownloadsUi(mIsVisibleInDownloadsUi);
             DownloadLog.i("has created a download request.");
             return request;
         }
 
         void startMe() {
-            downloadId = mDownloadManager.enqueue(create());
-            DownloadLog.i("start a task. id=" + downloadId);
-            mIDownloadCallback.onStart(this);
-            final DownloadManager.Query query = new DownloadManager.Query();
-            mTimer = new Timer();
-            mTimerTask = new TimerTask() {
-                @Override
-                public void run() {
-                    Cursor cursor = mDownloadManager.query(query.setFilterById(getDownloadId()));
-                    if (cursor != null && cursor.moveToFirst()) {
-                        if (cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_SUCCESSFUL) {
-                            mTimerTask.cancel();
-                            mTimer.purge();
-                            mHandler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    DownloadLog.d("the download has successfully completed. id=" + downloadId);
-                                    mIDownloadCallback.onProgress(totalSize, totalSize, "100%");
-                                    mIDownloadCallback.onSuccess(new File(downloadFilePath));
-                                    mHandler.removeCallbacksAndMessages(mProgressUpdateRunnable);
-                                }
-                            });
-                            return;
+            try {
+                downloadId = mDownloadManager.enqueue(create());
+                DownloadLog.i("start a task. id="+downloadId);
+                mIDownloadCallback.onStart(this);
+                final DownloadManager.Query query = new DownloadManager.Query();
+                mTimer = new Timer();
+                mTimerTask = new TimerTask() {
+                    @Override
+                    public void run() {
+                        Cursor cursor = mDownloadManager.query(query.setFilterById(getDownloadId()));
+                        if(cursor != null && cursor.moveToFirst()) {
+                            if(cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_SUCCESSFUL) {
+                                mTimerTask.cancel();
+                                mTimer.purge();
+                                mHandler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        DownloadLog.d("the download has successfully completed. id="+downloadId);
+                                        mIDownloadCallback.onProgress(totalSize, totalSize, "100%");
+                                        mIDownloadCallback.onSuccess(new File(downloadFilePath));
+                                        mHandler.removeCallbacksAndMessages(mProgressUpdateRunnable);
+                                    }
+                                });
+                                return;
+                            }
+                            downloadedSize = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+                            totalSize = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+                            if(totalSize > 0) mHandler.post(mProgressUpdateRunnable);
                         }
-                        downloadedSize = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
-                        totalSize = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-                        if (totalSize > 0) mHandler.post(mProgressUpdateRunnable);
+                        if(cursor != null) cursor.close();
                     }
-                    if (cursor != null) cursor.close();
-                }
-            };
-            mTimer.schedule(mTimerTask, 0, 1000);
+                };
+                mTimer.schedule(mTimerTask, 0, 1000);
+            } catch(Exception e) {
+                mIDownloadCallback.onFailure(this, e);
+                DownloadLog.e("startme has Exception: "+e.getMessage());
+            }
         }
 
         private Runnable mProgressUpdateRunnable = new Runnable() {
             @Override
             public void run() {
-                String percent = String.valueOf(downloadedSize * 100 / totalSize) + "%";
-                DownloadLog.d("download progress update : downloadedSize=" + downloadedSize + " ,totalSize=" + totalSize + " ,percent=" + percent);
+                String percent = String.valueOf(downloadedSize*100/totalSize)+"%";
+                DownloadLog.d("download progress update : downloadedSize="+downloadedSize+" ,totalSize="+totalSize+" ,percent="+percent);
                 mIDownloadCallback.onProgress(downloadedSize, totalSize, percent);
             }
         };

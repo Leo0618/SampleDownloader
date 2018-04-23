@@ -1,4 +1,7 @@
 # SampleDownloader
+[ ![Download](https://api.bintray.com/packages/bytehit/maven/Downloader/images/download.svg) ](https://bintray.com/bytehit/maven/Downloader/_latestVersion)
+
+
 > 一个简单的文件下载库，对系统下载服务进行的二次简单封装，支持多任务同时下载，使用系统下载服务，不用担心应用进程被杀掉后终止下载的问题。不支持断点续传。
 
 
@@ -7,7 +10,7 @@
 **Step1:添加依赖** 
 
 	dependencies {
-	    compile 'com.leo618:downloader:0.0.2'
+	    compile 'com.leo618:downloader:0.0.3'
 	}
 
 
