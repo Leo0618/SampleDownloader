@@ -10,7 +10,7 @@
 **Step1:添加依赖** 
 
 	dependencies {
-	    compile 'com.leo618:downloader:0.0.3'
+	    implementation 'com.leo618:downloader:latestVersion'
 	}
 
 

@@ -25,5 +25,5 @@ dependencies {
     api 'com.leo618:MPermission:0.0.2'
 
     api project(':downloader')
-//    compile 'com.leo618:downloader:0.0.3'
+//    compile 'com.leo618:downloader:0.0.4'
 }
