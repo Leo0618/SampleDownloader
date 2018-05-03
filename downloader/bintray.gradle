@@ -3,7 +3,7 @@ publish {
     userOrg = 'bytehit'
     groupId = 'com.leo618'
     artifactId = 'downloader'
-    publishVersion = '0.0.4'
+    publishVersion = '0.0.5'
     desc = 'an easy download library for android.'
     website = 'https://github.com/Leo0618/SampleDownloader'
 }

@@ -279,27 +279,29 @@ public final class Downloader {
                 mTimerTask = new TimerTask() {
                     @Override
                     public void run() {
-                        Cursor cursor = mDownloadManager.query(query.setFilterById(getDownloadId()));
-                        if(cursor != null && cursor.moveToFirst()) {
-                            if(cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_SUCCESSFUL) {
-                                mTimerTask.cancel();
-                                mTimer.purge();
-                                mHandler.post(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        DownloadLog.d("the download has successfully completed. id="+downloadId);
-                                        mIDownloadCallback.onProgress(totalSize, totalSize, "100%");
-                                        mIDownloadCallback.onSuccess(new File(downloadFilePath));
-                                        mHandler.removeCallbacksAndMessages(mProgressUpdateRunnable);
-                                    }
-                                });
-                                return;
+                        try {
+                            Cursor cursor = mDownloadManager.query(query.setFilterById(getDownloadId()));
+                            if(cursor != null && cursor.moveToFirst()) {
+                                if(cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_SUCCESSFUL) {
+                                    mTimerTask.cancel();
+                                    mTimer.purge();
+                                    mHandler.post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            DownloadLog.d("the download has successfully completed. id="+downloadId);
+                                            mIDownloadCallback.onProgress(totalSize, totalSize, "100%");
+                                            mIDownloadCallback.onSuccess(new File(downloadFilePath));
+                                            mHandler.removeCallbacksAndMessages(mProgressUpdateRunnable);
+                                        }
+                                    });
+                                    return;
+                                }
+                                downloadedSize = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+                                totalSize = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+                                if(totalSize > 0) mHandler.post(mProgressUpdateRunnable);
                             }
-                            downloadedSize = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
-                            totalSize = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
-                            if(totalSize > 0) mHandler.post(mProgressUpdateRunnable);
-                        }
-                        if(cursor != null) cursor.close();
+                            if(cursor != null) cursor.close();
+                        } catch(Exception e) {DownloadLog.e("Progress has Exception: "+e.getMessage());}
                     }
                 };
                 mTimer.schedule(mTimerTask, 0, 1000);
