@@ -2,8 +2,8 @@ apply plugin: 'com.novoda.bintray-release'
 publish {
     userOrg = 'bytehit'
     groupId = 'com.leo618'
-    artifactId = 'downloader'
-    publishVersion = '0.0.5'
+    artifactId = 'Downloader'
+    publishVersion = '0.0.4'
     desc = 'an easy download library for android.'
     website = 'https://github.com/Leo0618/SampleDownloader'
 }
